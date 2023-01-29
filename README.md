@@ -1,12 +1,14 @@
 # LsassPrinter
 How to dump lsass.exe via spoolsv.exe and DLL side-loading.
 # Overview
-Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` everytime the computer boots. By leveraging dll-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a dll of our own creation, we can gain privileged code execution in the spoolsv process. Of course, you'll need some sort of administrative rights to mess with DLLs in System32. To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
+Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` every time the computer boots. By leveraging dll-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a dll of our own creation, we can gain privileged code execution in the spoolsv process. 
 
-> If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load **WSDPrintProxy.DLL** everytime the computer boots. On some computers spoolsv doesn't appear to load **WSDPrintProxy.DLL** at all though, and I'm not sure why. In those cases, you may have better luck with **winprint.dll**.
+Of course, you'll need some sort of administrative rights to mess with DLLs in System32. To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
+
+> If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load **WSDPrintProxy.DLL** every time the computer boots. On some computers spoolsv doesn't appear to load **WSDPrintProxy.DLL** at all though, and I'm not sure why. In those cases, you may have better luck with **winprint.dll**.
 
 Credits to: [ired.team](https://www.ired.team) for their code on MiniDumpWriteDump and minidumpCallback.
-# The DLL
+# The Code
 Apologies in advance for my spaghetti code. 
 
 When the case ``DLL_PROCESS_ATTACH`` is triggered, the ``dump`` function is called. The ``dump`` function does some setup of structures, finds the PID of lsass, obtains a handle to lsass with process access rights ``PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE``, and then calls ``MiniDumpWriteDump``.
@@ -17,7 +19,7 @@ This callback is necessary because we need to save the output of ``MiniDumpWrite
 
 > Compile in release mode.
 # POC
-``WSDPrintProxy.DLL`` is owned by ``NT SERVICE\TrustedInstaller`` by default, so we'll need to take ownership first before we can make changes to it.
+**WSDPrintProxy.DLL** is owned by ``NT SERVICE\TrustedInstaller`` by default, so we'll need to take ownership first before we can make changes to it.
 
 ![Capture1](https://user-images.githubusercontent.com/16895391/215357267-c994d8a8-f361-4666-833b-0679d21c153b.PNG)
 
@@ -25,15 +27,15 @@ Assuming we're a local administrator, we can edit the ACLs to give the administr
 
 ![Capture2](https://user-images.githubusercontent.com/16895391/215357337-9c36be08-4ca7-4158-9d44-326aa9ccdbde.PNG)
 
-We'll probably want to make a copy of the legitmate ``WSDPrintProxy.DLL`` so we can restore it later after dumping lsass.
+We'll probably want to make a copy of the legitmate **WSDPrintProxy.DLL** so we can restore it later after dumping lsass.
 
 ![Capture3](https://user-images.githubusercontent.com/16895391/215357411-045c314c-5993-4d6e-887b-a0834c7a01d8.PNG)
 
-Now we'll move our malicious version of ``WSDPrintProxy.DLL`` into place.
+Now we'll move our malicious version of **WSDPrintProxy.DLL** into place.
 
 ![Capture4](https://user-images.githubusercontent.com/16895391/215357445-6fbb47a3-0d3a-4db2-b85f-96f5ac80202a.PNG)
 
-Now we can either wait for the system to be shutdown/rebooted, or we can force a reboot manually.
+Now we can either wait for the system to be shutdown/rebooted, or we can force a reboot manually. Running ``net stop spooler`` and ``net start spooler`` will not work, it must be a reboot.
 
 ![Capture5](https://user-images.githubusercontent.com/16895391/215357480-3006f14f-7c61-4c3f-8471-9cc4fe7f1841.PNG)
 
