@@ -1,19 +1,21 @@
 # LsassPrinter
 How to dump lsass.exe via spoolsv.exe and DLL side-loading.
 # Overview
-Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` everytime the computer boots. By leveraging dll-side loading and replacing ``WSDPrintProxy.DLL`` or ``winprint.dll`` with a dll of our own creation, we can gain privileged code execution in the spoolsv process. Of course, you'll need some sort of administrative rights to mess with DLLs in System32. To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
+Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` everytime the computer boots. By leveraging dll-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a dll of our own creation, we can gain privileged code execution in the spoolsv process. Of course, you'll need some sort of administrative rights to mess with DLLs in System32. To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
 
-> If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load ``WSDPrintProxy.DLL`` everytime the computer boots. On some computers spoolsv doesn't appear to load ``WSDPrintProxy.DLL`` at all though, and I'm not sure why. In those cases, you may have better luck with ``winprint.dll``.
+> If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load **WSDPrintProxy.DLL** everytime the computer boots. On some computers spoolsv doesn't appear to load **WSDPrintProxy.DLL** at all though, and I'm not sure why. In those cases, you may have better luck with **winprint.dll**.
 
 Credits to: [ired.team](https://www.ired.team) for their code on MiniDumpWriteDump and minidumpCallback.
 # The DLL
 Apologies in advance for my spaghetti code. 
 
-When the case ``DLL_PROCESS_ATTACH`` is triggered, we call the ``dump`` function. The dump function does some setup of structures, finds the PID of lsass, obtains a handle to lsass with process access rights ``PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE``, and then calls ``MiniDumpWriteDump``.
+When the case ``DLL_PROCESS_ATTACH`` is triggered, the ``dump`` function is called. The ``dump`` function does some setup of structures, finds the PID of lsass, obtains a handle to lsass with process access rights ``PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE``, and then calls ``MiniDumpWriteDump``.
 
 Instead of passing a handle to an output file as an argument to ``MiniDumpWriteDump``, we instead pass a pointer to a ``MINIDUMP_CALLBACK_INFORMATION`` structure that contains the member ``CallbackRoutine`` which contains a pointer to our callback function ``minidumpCallback``.
 
-This callback is necessary because we need to save the output of ``MiniDumpWriteDump`` to memory and XOR it before writing it to disk. AVs & EDRs will actually detect lsass dump files based on signatures if not obfuscated in some way, even if the initial dump of lsass went undetected.
+This callback is necessary because we need to save the output of ``MiniDumpWriteDump`` to memory and XOR it before writing the dump file to disk. AVs & EDRs will actually detect lsass dump files based on signatures if not obfuscated in some way, even if the initial dump of lsass went undetected.
+
+> Compile in release mode.
 # POC
 ``WSDPrintProxy.DLL`` is owned by ``NT SERVICE\TrustedInstaller`` by default, so we'll need to take ownership first before we can make changes to it.
 
