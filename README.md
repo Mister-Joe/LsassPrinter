@@ -1,9 +1,9 @@
 # LsassPrinter
 How to dump lsass.exe via spoolsv.exe with DLL side-loading.
 # Overview
-Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` every time the computer boots. By leveraging DLL-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a DLL of our own creation, we can gain privileged code execution in the spoolsv process. 
-
 To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
+
+Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` every time the computer boots. By leveraging DLL-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a DLL of our own creation, we can gain privileged code execution in the spoolsv process. 
 
 > If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load **WSDPrintProxy.DLL** every time the computer boots. On some computers spoolsv doesn't appear to load **WSDPrintProxy.DLL** at all though, and I'm not sure why. In those cases, you may have better luck with **winprint.dll**.
 
