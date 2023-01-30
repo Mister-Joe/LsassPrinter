@@ -1,5 +1,5 @@
 # LsassPrinter
-How to dump lsass.exe via spoolsv.exe with DLL side-loading.
+How to dump lsass via spoolsv with DLL side-loading.
 # Overview
 To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
 
