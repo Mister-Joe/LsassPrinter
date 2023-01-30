@@ -3,6 +3,8 @@ How to dump lsass via spoolsv with DLL side-loading.
 # Overview
 To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
 
+<img src="https://user-images.githubusercontent.com/16895391/215357655-940dd8cb-3489-4e06-9c75-dce4ea7e2f8a.PNG" width=25% height=25%/> <img src="https://user-images.githubusercontent.com/16895391/215357739-cce0564b-8516-4949-9233-ec13860d9c5d.png" width=58% height=58%/>
+
 Generally spoolsv.exe will load ``C:\Windows\System32\WSDPrintProxy.DLL`` and/or ``C:\Windows\System32\spool\prtprocs\x64\winprint.dll`` every time the computer boots. By leveraging DLL-side loading and replacing **WSDPrintProxy.DLL** or **winprint.dll** with a DLL of our own creation, we can gain privileged code execution in the spoolsv process, obtain a handle to lsass, and call ``MiniDumpWriteDump``. 
 
 > If you've configured a printer through the Windows "add a printer" functionality, generally spoolsv will load **WSDPrintProxy.DLL** every time the computer boots. On some computers spoolsv doesn't appear to load **WSDPrintProxy.DLL** at all though, and I'm not sure why. In those cases, you may have better luck with **winprint.dll**.
@@ -46,8 +48,3 @@ After rebooting, we find our XOR'd dump file written to C:\.
 At this point, we can transfer the dump file to a Linux machine under our control and use the little ``xor_decrypt.py`` script I made to decrypt the dump file, then we can use ``pypykatz`` to parse the dump file.
 
 ![Capture7](https://user-images.githubusercontent.com/16895391/215357588-71ea88bf-4573-40aa-aad4-1310933a6949.PNG)
-
-To my surprise, both Windows Defender and CrowdStrike Falcon did not detect this.
-
-<img src="https://user-images.githubusercontent.com/16895391/215357655-940dd8cb-3489-4e06-9c75-dce4ea7e2f8a.PNG" width=25% height=25%/> <img src="https://user-images.githubusercontent.com/16895391/215357739-cce0564b-8516-4949-9233-ec13860d9c5d.png" width=50% height=50%/>
-
