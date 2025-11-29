@@ -1,4 +1,7 @@
 # LsassPrinter
+> [!CAUTION]
+> Credential Guard and LSA Protection (RunAsPPL) largely render this technique ineffective. Archiving this repository.
+
 How to dump lsass via spoolsv with DLL side-loading.
 # Overview
 To my surprise, this is an effective way to dump lsass without being detected by either Windows Defender or CrowdStrike Falcon (for now).
